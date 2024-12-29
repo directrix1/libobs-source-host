@@ -1,2 +1,3 @@
+-I/usr/include/obs
 -I/usr/include
 -I.
