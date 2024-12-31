@@ -9,7 +9,7 @@ int main()
 {
     ObsSourceHost osh;
     cout << "Starting libsobs-source-host..." << endl;
-    if (!osh.startCapturing(1920, 1080, VIDEO_FORMAT_RGBA, 3)) {
+    if (!osh.startCapturing("/usr/lib/obs-plugins/linux-capture.so;/usr/lib/obs-plugins/linux-pipewire.so", "", 1920, 1080, VIDEO_FORMAT_RGBA, 3)) {
         cout << "Failed to start." << endl;
         return 1;
     }
