@@ -23,6 +23,37 @@ void ObsSourceHost::obsRunner()
             }
             state->run_state = OHRS_RUNNING;
 
+            size_t idx;
+            char* item_type;
+            idx = 0;
+            while (obs_enum_source_types(idx++, (const char**)&item_type)) {
+                cout << "Available source type: " << item_type << endl;
+            }
+            idx = 0;
+            while (obs_enum_input_types(idx++, (const char**)&item_type)) {
+                cout << "Available input type: " << item_type << endl;
+            }
+            idx = 0;
+            while (obs_enum_filter_types(idx++, (const char**)&item_type)) {
+                cout << "Available filter type: " << item_type << endl;
+            }
+            idx = 0;
+            while (obs_enum_transition_types(idx++, (const char**)&item_type)) {
+                cout << "Available transition type: " << item_type << endl;
+            }
+            idx = 0;
+            while (obs_enum_output_types(idx++, (const char**)&item_type)) {
+                cout << "Available output type: " << item_type << endl;
+            }
+            idx = 0;
+            while (obs_enum_encoder_types(idx++, (const char**)&item_type)) {
+                cout << "Available encoder type: " << item_type << endl;
+            }
+            idx = 0;
+            while (obs_enum_service_types(idx++, (const char**)&item_type)) {
+                cout << "Available service type: " << item_type << endl;
+            }
+
         } else {
             // TODO: capture frames, maybe just use a semafore and wait
         }
