@@ -1,5 +1,6 @@
 #pragma once
 
+#include "obs.h"
 #include <cstdint>
 #include <obs/media-io/video-io.h>
 #include <string>
@@ -36,7 +37,8 @@ protected:
 
     void obsRunner();
     bool initObs();
-    bool loadModule(const char* moduleName);
+    static void findModule(ObsSourceHost* param, const struct obs_module_info2* info);
+    bool loadModule(const char* moduleName, const char* moduleData);
     bool loadModules();
     void stopObs();
 

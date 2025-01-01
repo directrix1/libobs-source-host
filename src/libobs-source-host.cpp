@@ -106,10 +106,10 @@ bool ObsSourceHost::initObs()
     return true;
 }
 
-bool ObsSourceHost::loadModule(const char* moduleName)
+bool ObsSourceHost::loadModule(const char* moduleName, const char* moduleData)
 {
     obs_module_t* cur_module;
-    int code = obs_open_module(&cur_module, moduleName, NULL);
+    int code = obs_open_module(&cur_module, moduleName, moduleData);
     switch (code) {
     case MODULE_MISSING_EXPORTS:
         blog(LOG_DEBUG, "Failed to load module file '%s', not an OBS plugin", moduleName);
@@ -134,20 +134,36 @@ bool ObsSourceHost::loadModule(const char* moduleName)
     return true;
 }
 
-bool ObsSourceHost::loadModules()
+void ObsSourceHost::findModule(ObsSourceHost* param, const struct obs_module_info2* info)
 {
+
     size_t curPos = 0, endPos = 0;
-    cout << "Loading modules..." << endl;
+    string moduleList = param->moduleList;
     string moduleName;
+    string huntModuleName = string(info->name);
     if (moduleList.size() > 0) {
         while ((endPos = moduleList.find(";", curPos)) != string::npos) {
             moduleName = moduleList.substr(curPos, endPos - curPos);
-            loadModule(moduleName.c_str());
+            if (moduleName == huntModuleName) {
+                param->loadModule(info->bin_path, info->data_path);
+                return;
+            }
             endPos = curPos = endPos + 1;
         }
         // Don't forget the last or only one'
-        loadModule(moduleList.c_str() + curPos);
+        moduleName = moduleList.substr(curPos, moduleList.length() - curPos);
+        if (moduleName == huntModuleName) {
+            param->loadModule(info->bin_path, info->data_path);
+            return;
+        }
     }
+}
+
+bool ObsSourceHost::loadModules()
+{
+    cout << "Loading modules..." << endl;
+    obs_find_modules2((obs_find_module_callback2_t)&ObsSourceHost::findModule, (void*)this);
+    cout << "Done finding modules." << endl;
     obs_post_load_modules();
     cout << "Loading modules finished." << endl;
     return true;
