@@ -30,9 +30,11 @@ private:
 protected:
     bool inited;
     struct obs_host_state* state;
-    std::string moduleList;
-    std::string sourceConfig;
+    string moduleList;
+    string sourceConfig;
     uint8_t* buffers;
+    obs_source_t* source;
+    obs_data_t* sourceSettings;
     pid_t child_process;
 
     void obsRunner();
@@ -40,6 +42,8 @@ protected:
     static void findModule(ObsSourceHost* param, const struct obs_module_info2* info);
     bool loadModule(const char* moduleName, const char* moduleData);
     bool loadModules();
+    static void capturedFrameCallback(ObsSourceHost* param, struct video_data* frame);
+    bool createScene();
     void stopObs();
 
 public:

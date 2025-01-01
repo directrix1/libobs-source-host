@@ -1,4 +1,5 @@
 #include "libobs-source-host.hpp"
+#include "obs-data.h"
 #include <iostream>
 #include <obs/media-io/video-io.h>
 #include <obs/obs-frontend-api.h>
@@ -21,8 +22,6 @@ void ObsSourceHost::obsRunner()
                 state->run_state = OHRS_STOP;
                 continue;
             }
-            state->run_state = OHRS_RUNNING;
-
             size_t idx;
             char* item_type;
             idx = 0;
@@ -53,7 +52,12 @@ void ObsSourceHost::obsRunner()
             while (obs_enum_service_types(idx++, (const char**)&item_type)) {
                 cout << "Available service type: " << item_type << endl;
             }
+            if (!createScene()) {
+                state->run_state = OHRS_STOP;
+                continue;
+            }
 
+            state->run_state = OHRS_RUNNING;
         } else {
             // TODO: capture frames, maybe just use a semafore and wait
         }
@@ -169,6 +173,26 @@ bool ObsSourceHost::loadModules()
     return true;
 }
 
+void ObsSourceHost::capturedFrameCallback(ObsSourceHost* param, struct video_data* frame)
+{
+    uint8_t* frame_plane = (frame->data)[0];
+    cout << "Frame captured: " << param->state->cur_frame++ << endl;
+    cout << frame->linesize[0] << ": (";
+
+    for (int i = 0; i < 4; i++) {
+        cout << +(frame_plane[i]) << ", ";
+    }
+    cout << ")" << endl;
+}
+
+bool ObsSourceHost::createScene()
+{
+    sourceSettings = obs_data_create();
+    source = obs_source_create(sourceConfig.c_str(), "thesource", sourceSettings, NULL);
+    obs_set_output_source(0, source);
+    obs_add_raw_video_callback(NULL, (void (*)(void*, struct video_data*)) & ObsSourceHost::capturedFrameCallback, (void*)this);
+    return true;
+}
 void ObsSourceHost::stopObs()
 {
     obs_shutdown();
