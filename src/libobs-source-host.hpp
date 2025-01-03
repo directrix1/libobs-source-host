@@ -2,6 +2,7 @@
 
 #include "obs.h"
 #include <cstdint>
+#include <glib.h>
 #include <obs/media-io/video-io.h>
 #include <string>
 
@@ -29,12 +30,14 @@ class ObsSourceHost {
 private:
 protected:
     bool inited;
+    GMainLoop* main_loop;
     struct obs_host_state* state;
     string moduleList;
     string sourceConfig;
     uint8_t* buffers;
     obs_source_t* source;
     obs_data_t* sourceSettings;
+    obs_properties_t* sourceProps;
     pid_t child_process;
 
     void obsRunner();

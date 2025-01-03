@@ -1,9 +1,13 @@
 #include "libobs-source-host.hpp"
 #include "obs-data.h"
+#include "obs-properties.h"
+#include <csignal>
+#include <glib.h>
 #include <iostream>
 #include <obs/media-io/video-io.h>
 #include <obs/obs-frontend-api.h>
 #include <obs/obs.h>
+#include <signal.h>
 #include <sys/mman.h>
 #include <sys/wait.h>
 
@@ -11,6 +15,7 @@ using namespace std;
 
 void ObsSourceHost::obsRunner()
 {
+    main_loop = g_main_loop_new(NULL, false);
     while (state->run_state == OHRS_STOPPED) { }
     while (state->run_state != OHRS_STOP) {
         if (state->run_state == OHRS_START) {
@@ -59,7 +64,7 @@ void ObsSourceHost::obsRunner()
 
             state->run_state = OHRS_RUNNING;
         } else {
-            // TODO: capture frames, maybe just use a semafore and wait
+            g_main_loop_run(main_loop);
         }
     }
     stopObs();
@@ -187,12 +192,38 @@ void ObsSourceHost::capturedFrameCallback(ObsSourceHost* param, struct video_dat
 
 bool ObsSourceHost::createScene()
 {
-    sourceSettings = obs_data_create();
-    source = obs_source_create(sourceConfig.c_str(), "thesource", sourceSettings, NULL);
+    const char* sourceName = sourceConfig.c_str();
+    sourceSettings = obs_get_source_defaults(sourceName);
+    cout << "Source defaults: " << obs_data_get_json(sourceSettings) << endl;
+    if ((source = obs_source_create(sourceName, "thesource", NULL, NULL)) == NULL) {
+        cout << "Could not create " << sourceConfig << " source." << endl;
+        return false;
+    }
     obs_set_output_source(0, source);
     obs_add_raw_video_callback(NULL, (void (*)(void*, struct video_data*)) & ObsSourceHost::capturedFrameCallback, (void*)this);
+    cout << "Source is " << (obs_source_enabled(source) ? "" : "not ") << "enabled." << endl;
+    cout << "Source is " << (obs_source_active(source) ? "" : "not ") << "active." << endl;
+    cout << "Source is " << (obs_source_configurable(source) ? "" : "not ") << "configurable." << endl;
+    cout << "Source Dims: (" << obs_source_get_width(source) << ", " << obs_source_get_height(source) << ")" << endl;
+    cout << "Source settings: " << obs_data_get_json(sourceSettings = obs_source_get_settings(source)) << endl;
+    cout << "Source save: " << obs_data_get_json(obs_save_source(source)) << endl;
+    sourceProps = obs_source_properties(source);
+    obs_property_t* prop = obs_properties_first(sourceProps);
+    do {
+        const char* propName = obs_property_name(prop);
+        cout << "Property: " << propName << endl;
+        /*
+        if (obs_property_get_type(prop) == OBS_PROPERTY_BUTTON && string(propName) == string("Reload")) {
+            cout << " *clicked button*" << endl;
+            obs_property_button_clicked(prop, NULL);
+        }
+        */
+    } while (obs_property_next(&prop));
+
+    obs_source_update(source, sourceSettings);
     return true;
 }
+
 void ObsSourceHost::stopObs()
 {
     obs_shutdown();
@@ -279,6 +310,7 @@ void ObsSourceHost::stopCapturing()
             break;
         default:
             state->run_state = OHRS_STOP;
+            kill(child_process, SIGQUIT);
         }
         while (state->run_state != OHRS_STOPPED) { };
         waitpid(child_process, NULL, 0);
