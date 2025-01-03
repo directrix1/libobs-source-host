@@ -1,4 +1,4 @@
-#include "libobs-source-host.hpp"
+#include "obs-source-host.hpp"
 #include "obs-data.h"
 #include "obs-properties.h"
 #include <csignal>

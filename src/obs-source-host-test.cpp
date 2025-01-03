@@ -1,4 +1,4 @@
-#include "libobs-source-host.hpp"
+#include "obs-source-host.hpp"
 #include <iostream>
 #include <obs/media-io/video-io.h>
 #include <thread>
