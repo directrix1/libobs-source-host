@@ -7,7 +7,6 @@
 #include <obs/media-io/video-io.h>
 #include <obs/obs-frontend-api.h>
 #include <obs/obs.h>
-#include <signal.h>
 #include <sys/mman.h>
 #include <sys/wait.h>
 
@@ -15,7 +14,6 @@ using namespace std;
 
 void ObsSourceHost::obsRunner()
 {
-    main_loop = g_main_loop_new(NULL, false);
     while (state->run_state == OHRS_STOPPED) { }
     while (state->run_state != OHRS_STOP) {
         if (state->run_state == OHRS_START) {
@@ -64,11 +62,10 @@ void ObsSourceHost::obsRunner()
 
             state->run_state = OHRS_RUNNING;
         } else {
-            g_main_loop_run(main_loop);
+            g_main_context_iteration(NULL, false);
         }
     }
     stopObs();
-    state->run_state = OHRS_STOPPED;
 }
 
 bool ObsSourceHost::initObs()
@@ -180,14 +177,9 @@ bool ObsSourceHost::loadModules()
 
 void ObsSourceHost::capturedFrameCallback(ObsSourceHost* param, struct video_data* frame)
 {
-    uint8_t* frame_plane = (frame->data)[0];
-    cout << "Frame captured: " << param->state->cur_frame++ << endl;
-    cout << frame->linesize[0] << ": (";
-
-    for (int i = 0; i < 4; i++) {
-        cout << +(frame_plane[i]) << ", ";
-    }
-    cout << ")" << endl;
+    uint32_t nextFrameNum = (param->state->cur_frame + 1) % (param->state->num_frames);
+    memcpy(param->buffers + (nextFrameNum * (param->state->frame_size)), (frame->data)[0], param->state->frame_size);
+    param->state->cur_frame = nextFrameNum;
 }
 
 bool ObsSourceHost::createScene()
@@ -219,14 +211,18 @@ bool ObsSourceHost::createScene()
         }
         */
     } while (obs_property_next(&prop));
-
-    obs_source_update(source, sourceSettings);
+    // obs_source_update(source, sourceSettings);
     return true;
 }
 
 void ObsSourceHost::stopObs()
 {
+    obs_source_release(source);
     obs_shutdown();
+    g_main_context_iteration(NULL, false);
+    state->run_state = OHRS_STOPPED;
+    munmap(state, state->shm_size);
+    exit(0);
 }
 
 ObsSourceHost::ObsSourceHost()
@@ -280,8 +276,7 @@ bool ObsSourceHost::startCapturing(const string module_list, const string source
         return false;
     case 0:
         obsRunner();
-        munmap(state, shm_size);
-        exit(0);
+        return true;
     default:
         inited = true;
         return true;
@@ -298,7 +293,7 @@ bool ObsSourceHost::isCapturing()
 
 void* ObsSourceHost::getNewestBuffer()
 {
-    return NULL;
+    return buffers + (state->frame_size * state->cur_frame);
 }
 
 void ObsSourceHost::stopCapturing()
@@ -310,7 +305,6 @@ void ObsSourceHost::stopCapturing()
             break;
         default:
             state->run_state = OHRS_STOP;
-            kill(child_process, SIGQUIT);
         }
         while (state->run_state != OHRS_STOPPED) { };
         waitpid(child_process, NULL, 0);

@@ -30,7 +30,6 @@ class ObsSourceHost {
 private:
 protected:
     bool inited;
-    GMainLoop* main_loop;
     struct obs_host_state* state;
     string moduleList;
     string sourceConfig;
