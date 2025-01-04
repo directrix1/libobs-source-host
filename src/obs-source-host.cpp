@@ -9,6 +9,7 @@
 #include <obs/obs.h>
 #include <sys/mman.h>
 #include <sys/wait.h>
+#include <thread>
 
 using namespace std;
 
@@ -211,12 +212,14 @@ bool ObsSourceHost::createScene()
         }
         */
     } while (obs_property_next(&prop));
+    obs_properties_destroy(sourceProps);
     // obs_source_update(source, sourceSettings);
     return true;
 }
 
 void ObsSourceHost::stopObs()
 {
+    obs_set_output_source(0, NULL);
     obs_source_release(source);
     obs_shutdown();
     g_main_context_iteration(NULL, false);
