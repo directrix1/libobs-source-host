@@ -1,11 +1,11 @@
 #include "obs-source-host.hpp"
-#include "obs-data.h"
-#include "obs-properties.h"
 #include <csignal>
 #include <glib.h>
 #include <iostream>
 #include <obs/media-io/video-io.h>
+#include <obs/obs-data.h>
 #include <obs/obs-frontend-api.h>
+#include <obs/obs-properties.h>
 #include <obs/obs.h>
 #include <sys/mman.h>
 #include <sys/wait.h>

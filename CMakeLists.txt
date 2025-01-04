@@ -15,7 +15,15 @@ string(REPLACE "-std=gnu17" "-std=gnu++17" OBS_FE_LINK_LIBRARIES "${OBS_FE_LINK_
 string(REPLACE "-std=gnu17" "-std=gnu++17" OBS_LDFLAGS "${OBS_LDFLAGS}")
 string(REPLACE "-std=gnu17" "-std=gnu++17" OBS_FE_LDFLAGS "${OBS_FE_LDFLAGS}")
 
-add_library(obs-source-host SHARED src/obs-source-host.cpp)
+add_library(obs-source-host SHARED)
+target_sources(obs-source-host
+PUBLIC
+    src/obs-source-host.cpp
+    PUBLIC FILE_SET HEADERS
+    BASE_DIRS src/ FILES
+        src/obs-source-host.hpp
+    )
+
 target_include_directories(obs-source-host PUBLIC
     /usr/include/obs
     ${GLIB_INCLUDE_DIRS}
@@ -64,3 +72,5 @@ target_link_options(obs-source-host-test PUBLIC
     ${OBS_LDFLAGS}
     ${OBS_FE_LDFLAGS}
 )
+
+install(TARGETS obs-source-host FILE_SET HEADERS)
