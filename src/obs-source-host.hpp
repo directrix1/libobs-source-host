@@ -77,7 +77,7 @@ public:
     ObsSourceHost();
     ~ObsSourceHost();
 
-    bool startCapturing(const string module_list, const string source_config, uint32_t width, uint32_t height, enum video_format format, uint32_t num_frame_buffers);
+    bool startCapturing(const char* module_list, const char* source_config, uint32_t width, uint32_t height, enum video_format format, uint32_t num_frame_buffers);
     bool isCapturing();
     void* getNewestBuffer();
     void stopCapturing();

@@ -1,7 +1,6 @@
 #include "obs-source-host.hpp"
 #include <csignal>
 #include <glib.h>
-#include <iostream>
 #include <obs/media-io/video-io.h>
 #include <obs/obs-data.h>
 #include <obs/obs-frontend-api.h>
@@ -9,7 +8,6 @@
 #include <obs/obs.h>
 #include <sys/mman.h>
 #include <sys/wait.h>
-#include <thread>
 
 using namespace std;
 
@@ -30,31 +28,31 @@ void ObsSourceHost::obsRunner()
             char* item_type;
             idx = 0;
             while (obs_enum_source_types(idx++, (const char**)&item_type)) {
-                cout << "Available source type: " << item_type << endl;
+                blog(LOG_DEBUG, "Available source type: %s\n", item_type);
             }
             idx = 0;
             while (obs_enum_input_types(idx++, (const char**)&item_type)) {
-                cout << "Available input type: " << item_type << endl;
+                blog(LOG_DEBUG, "Available input type: %s\n", item_type);
             }
             idx = 0;
             while (obs_enum_filter_types(idx++, (const char**)&item_type)) {
-                cout << "Available filter type: " << item_type << endl;
+                blog(LOG_DEBUG, "Available filter type: %s\n", item_type);
             }
             idx = 0;
             while (obs_enum_transition_types(idx++, (const char**)&item_type)) {
-                cout << "Available transition type: " << item_type << endl;
+                blog(LOG_DEBUG, "Available transition type: %s\n", item_type);
             }
             idx = 0;
             while (obs_enum_output_types(idx++, (const char**)&item_type)) {
-                cout << "Available output type: " << item_type << endl;
+                blog(LOG_DEBUG, "Available output type: %s\n", item_type);
             }
             idx = 0;
             while (obs_enum_encoder_types(idx++, (const char**)&item_type)) {
-                cout << "Available encoder type: " << item_type << endl;
+                blog(LOG_DEBUG, "Available encoder type: %s\n", item_type);
             }
             idx = 0;
             while (obs_enum_service_types(idx++, (const char**)&item_type)) {
-                cout << "Available service type: " << item_type << endl;
+                blog(LOG_DEBUG, "Available service type: %s\n", item_type);
             }
             if (!createScene()) {
                 state->run_state = OHRS_STOP;
@@ -91,10 +89,10 @@ bool ObsSourceHost::initObs()
     };
     switch (res = obs_reset_video(&ovi)) {
     case OBS_VIDEO_SUCCESS:
-        cout << "Video successfully inited." << endl;
+        blog(LOG_DEBUG, "Video successfully inited.\n");
         break;
-    DEFAULT:
-        cout << "Video failed to init: " << res << endl;
+    default:
+        blog(LOG_DEBUG, "Video failed to init: %d\n", res);
         state->run_state = OHRS_STOP;
         return false;
         break;
@@ -104,9 +102,9 @@ bool ObsSourceHost::initObs()
         .speakers = SPEAKERS_STEREO,
     };
     if (obs_reset_audio(&oai)) {
-        cout << "Audio successfully inited." << endl;
+        blog(LOG_DEBUG, "Audio successfully inited.\n");
     } else {
-        cout << "Audio failed to init." << endl;
+        blog(LOG_DEBUG, "Audio failed to init.\n");
         state->run_state = OHRS_STOP;
         return false;
     }
@@ -168,11 +166,11 @@ void ObsSourceHost::findModule(ObsSourceHost* param, const struct obs_module_inf
 
 bool ObsSourceHost::loadModules()
 {
-    cout << "Loading modules..." << endl;
+    blog(LOG_INFO, "Loading modules...\n");
     obs_find_modules2((obs_find_module_callback2_t)&ObsSourceHost::findModule, (void*)this);
-    cout << "Done finding modules." << endl;
+    blog(LOG_INFO, "Done finding modules.\n");
     obs_post_load_modules();
-    cout << "Loading modules finished." << endl;
+    blog(LOG_INFO, "Loading modules finished.\n");
     return true;
 }
 
@@ -187,33 +185,21 @@ bool ObsSourceHost::createScene()
 {
     const char* sourceName = sourceConfig.c_str();
     sourceSettings = obs_get_source_defaults(sourceName);
-    cout << "Source defaults: " << obs_data_get_json(sourceSettings) << endl;
+    blog(LOG_DEBUG, "Source %s defaults: %s\n", sourceName, obs_data_get_json(sourceSettings));
     if ((source = obs_source_create(sourceName, "thesource", NULL, NULL)) == NULL) {
-        cout << "Could not create " << sourceConfig << " source." << endl;
+        blog(LOG_DEBUG, "Could not create %s source.\n", sourceName);
         return false;
     }
     obs_set_output_source(0, source);
     obs_add_raw_video_callback(NULL, (void (*)(void*, struct video_data*)) & ObsSourceHost::capturedFrameCallback, (void*)this);
-    cout << "Source is " << (obs_source_enabled(source) ? "" : "not ") << "enabled." << endl;
-    cout << "Source is " << (obs_source_active(source) ? "" : "not ") << "active." << endl;
-    cout << "Source is " << (obs_source_configurable(source) ? "" : "not ") << "configurable." << endl;
-    cout << "Source Dims: (" << obs_source_get_width(source) << ", " << obs_source_get_height(source) << ")" << endl;
-    cout << "Source settings: " << obs_data_get_json(sourceSettings = obs_source_get_settings(source)) << endl;
-    cout << "Source save: " << obs_data_get_json(obs_save_source(source)) << endl;
+    sourceSettings = obs_source_get_settings(source);
     sourceProps = obs_source_properties(source);
     obs_property_t* prop = obs_properties_first(sourceProps);
     do {
         const char* propName = obs_property_name(prop);
-        cout << "Property: " << propName << endl;
-        /*
-        if (obs_property_get_type(prop) == OBS_PROPERTY_BUTTON && string(propName) == string("Reload")) {
-            cout << " *clicked button*" << endl;
-            obs_property_button_clicked(prop, NULL);
-        }
-        */
+        blog(LOG_INFO, "Property: %s\n", propName);
     } while (obs_property_next(&prop));
     obs_properties_destroy(sourceProps);
-    // obs_source_update(source, sourceSettings);
     return true;
 }
 
@@ -237,7 +223,7 @@ ObsSourceHost::~ObsSourceHost()
 {
 }
 
-bool ObsSourceHost::startCapturing(const string module_list, const string source_config, uint32_t width, uint32_t height, enum video_format format, uint32_t num_frame_buffers)
+bool ObsSourceHost::startCapturing(const char* module_list, const char* source_config, uint32_t width, uint32_t height, enum video_format format, uint32_t num_frame_buffers)
 {
     moduleList = module_list;
     sourceConfig = source_config;
